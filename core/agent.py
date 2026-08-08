@@ -45,7 +45,7 @@ class Agent:
         for _ in range(self.max_turns):
             kwargs = {"model": self.model, "messages": self.messages, "tools": self.tools_schema}
             if self.reasoning:
-                kwargs["reasoning"] = self.reasoning
+                kwargs["extra_body"] = {"reasoning": self.reasoning}
                 
             response = self.client.chat.completions.create(**kwargs)
 
