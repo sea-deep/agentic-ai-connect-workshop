@@ -1,4 +1,4 @@
-"""Entry point for the Agentic AI Project."""
+"""Entry point for the Agentic AI Connect Workshop."""
 from core.config import get_openai_client, MODEL, SYSTEM_PROMPT
 from core.tools import tools_schema, AVAILABLE_TOOLS, find_reference_photo
 from core.agent import Agent
