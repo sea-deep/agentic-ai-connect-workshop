@@ -2,6 +2,7 @@
 import json
 import urllib.request
 import urllib.parse
+import base64
 
 # WMO weather codes mapping to short human descriptions
 WMO_WEATHER_CODES = {
@@ -137,3 +138,47 @@ tools_schema = [
         },
     },
 ]
+
+def find_reference_photo(query: str) -> str:
+    """
+    Searches Wikimedia Commons for a photo matching `query` and returns
+    it as a data URI the model can read directly.
+    
+    Args:
+        query (str): The search term for the photo.
+        
+    Returns:
+        str: A base64 encoded data URI of the image.
+    """
+    headers = {"User-Agent": "anatomy-of-ai-agent/1.0 (workshop demo)"}
+
+    def _get(url):
+        req = urllib.request.Request(url, headers=headers)
+        return urllib.request.urlopen(req, timeout=10)
+
+    search_url = "https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(
+        {"action": "query", "format": "json", "list": "search",
+         "srsearch": query, "srnamespace": 6, "srlimit": 1}
+    )
+    with _get(search_url) as r:
+        search_result = json.loads(r.read())
+        
+    if not search_result["query"]["search"]:
+        raise ValueError(f"No photos found for query: {query}")
+        
+    title = search_result["query"]["search"][0]["title"]
+
+    info_url = "https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(
+        {"action": "query", "format": "json", "titles": title,
+         "prop": "imageinfo", "iiprop": "url", "iiurlwidth": 512}
+    )
+    with _get(info_url) as r:
+        info_result = json.loads(r.read())
+    page = next(iter(info_result["query"]["pages"].values()))
+    image_url = page["imageinfo"][0]["thumburl"]
+
+    with _get(image_url) as r:
+        content_type = r.headers.get_content_type()
+        image_bytes = r.read()
+
+    return f"data:{content_type};base64,{base64.b64encode(image_bytes).decode('utf-8')}"
